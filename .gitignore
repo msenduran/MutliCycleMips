@@ -1,0 +1,21 @@
+# Whitelist: ignore everything by default
+*
+
+# Allow traversal into subdirectories
+!*/
+
+# Allowed source/data file types anywhere in the tree
+!*.v
+!*.asm
+!*.dat
+!*.py
+
+# Root-level files we want
+!.gitignore
+!README.md
+
+# Documentation is Markdown — allow only under docs/
+!docs/**/*.md
+
+# Never track these even if they would otherwise match
+CLAUDE.md
