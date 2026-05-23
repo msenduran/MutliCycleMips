@@ -1,6 +1,6 @@
 /*
  Module memory
- 
+
  Inputs: clk, addr, instrAddr, we, dIn
  Outputs: dOut, instrOut
 
@@ -32,16 +32,21 @@ module memory
 
    reg [width-1:0]            mem [depth-1:0];
 
+   `ifndef SYNTHESIS
    initial $readmemh(data, mem);
+   `endif
 
+   // Single always block: one driver per mem cell, Quartus-compatible
+   integer                    j;
+   always @(posedge clk)
+      if (we)
+         for (j = 0; j < wordSz; j = j + 1)
+            mem[addr+wordSz-1-j] <= dIn[j*width+:width];
+
+   // Read: each bit range of dOut driven by exactly one assign
    genvar                     i;
-
    generate
-      for (i = 0; i < wordSz; i = i+1) begin
-         always @(posedge clk)
-           if (we)
-             mem[addr+wordSz-1-i] <= dIn[i*width+:width];
-
+      for (i = 0; i < wordSz; i = i + 1) begin : gen_dout
          assign dOut[(wordSz - i - 1) * width+:width] = mem[addr+i];
       end
    endgenerate
