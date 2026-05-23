@@ -15,7 +15,11 @@ module cpu
    wire [4:0]  cmd, memCmd;
    reg [31:0]  ir;
 
-   initial ir =  {mem0.mem[0], mem0.mem[1], mem0.mem[2], mem0.mem[3]};
+   `ifdef SYNTHESIS
+   initial ir = 0;
+   `else
+   initial ir = {mem0.mem[0], mem0.mem[1], mem0.mem[2], mem0.mem[3]};
+   `endif
 
    decode decode0
      (
