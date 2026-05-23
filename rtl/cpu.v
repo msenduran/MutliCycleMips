@@ -36,7 +36,7 @@ module cpu
       .memCmd(memCmd)
       );
 
-   wire        eq, gt, pcWe, memWe, irWe, aWe, bWe, regWe, aluResWe;
+   wire        eq, gt, pcWe, memWe, irWe, aWe, bWe, regWe, aluResWe, mdrWe;
    wire [3:0]  aluOp;
    wire [1:0]  pcSrc, aluSrcB, aluSrcA, immExt, regIn, dst, memIn;
 
@@ -61,6 +61,7 @@ module cpu
       .memIn(memIn),
       .dst(dst),
       .aluResWe(aluResWe),
+      .mdrWe(mdrWe),
       .immExt(immExt)
       );
 
@@ -115,7 +116,9 @@ module cpu
       );
 
    wire [31:0] memAddr;
+   reg  [31:0] mdr;
    always @(posedge clk) if (aluResWe) ffResult <= result;
+   always @(posedge clk) if (mdrWe)    mdr      <= dOut;
 
    mux4way memAddrMux
      (
@@ -153,7 +156,7 @@ module cpu
      (
       .out(regDIn),
       .sel(regIn),
-      .in0(dOut),
+      .in0(mdr),
       .in1(ffResult),
       .in2(b),
       .in3(a)

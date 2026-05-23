@@ -130,7 +130,8 @@ module fsm
    aWe,
    bWe,
    regWe,
-   aluResWe
+   aluResWe,
+   mdrWe
    );
 
    reg [5:0]        prevState;
@@ -211,6 +212,7 @@ module fsm
 
    // Set control signals
    always @(posedge clk) begin
+      mdrWe <= 0;
       case (state)
         `IF : begin
            pcSrc <= `PC_SRC_ALU;
@@ -493,8 +495,9 @@ module fsm
            irWe <= 0;
            memWe <= 0;
            pcWe <= 0;
-           regWe <=0;
+           regWe <= 0;
            aluResWe <= 1;
+           mdrWe <= 1;
         end
 
         `MEM_SW : begin
@@ -745,6 +748,7 @@ module fsm
            pcWe <= 0;
            regWe <= 0;
            aluResWe <= 1;
+           mdrWe <= 1;
         end
 
         `WB_POP_RT : begin
