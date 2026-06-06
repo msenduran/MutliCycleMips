@@ -54,7 +54,7 @@ Bu proje, multicycle MIPS işlemcisinin Verilog ile tasarımını, **6 yeni öze
 - **Toplam komut:** 23 (15 standart MIPS + 6 PDF zorunlu yeni + JR/JAL ekstra)
 - **FSM state sayısı:** 42 (orijinal 20 + 22 yeni)
 - **State coverage:** 41/42 (%97.6)
-- **Test başarımı:** 23/23 fonksiyonel test PASS, mevcut nsum2 golden testi (1+2+...+15=120) korundu — regresyon yok.
+- **Test başarımı:** birim testleri (ALU 14/14, register file 5/5) + 23/23 komut testi PASS, nsum2 golden testi (1+2+...+15=120) korundu — regresyon yok. Waveform çıktıları ve datapath/FSM diyagramları raporda sunuldu.
 - **Assembler:** Python tabanlı, label destekli, 23 komutu da destekler.
 
 ---
@@ -375,7 +375,37 @@ python assembler.py prog.asm out.dat   # belirli çıktı yolu
 
 ## 7. Test ve Doğrulama
 
-### 7.1 Test seti (23 senaryo, hepsi PASS)
+Doğrulama PDF'in dört seviyesinde yapıldı: **birim** (ALU, register file), **komut** (her komut için ayrı senaryo), **program** (regresyon) ve **sınır durumları**. Ayrıca FSM state coverage ve waveform analizleri sunuldu.
+
+### 7.1 Birim Testleri (ALU + Register File)
+
+ALU ve register file, üst seviye CPU'dan bağımsız olarak ModelSim Verilog testbench'leri (`alu_tb.v`, `regfile_tb.v`) ile doğrulandı. Koşum: `testbench/run_unit_tests.ps1`.
+
+**ALU (`alu_tb.v`) — 14/14 PASS:** 9 işlemin tümü (ADD, SUB, XOR, SLT, AND, NAND, NOR, OR, MUL) artı bayraklar:
+
+| Test | Beklenen | Sonuç |
+|---|---|:---:|
+| ADD 5+3 | 8 | PASS |
+| ADD zero flag (0+0) | zero=1 | PASS |
+| ADD overflow (0x7FFFFFFF+1) | overflow=1 | PASS |
+| SUB 10-4 | 6 | PASS |
+| SUB zero flag (5-5) | zero=1 | PASS |
+| XOR / AND / NAND / NOR / OR | bit-kalıp doğru | PASS |
+| SLT signed (-1<0 → 1, 5<3 → 0) | 1 / 0 | PASS |
+| MUL 12×5 / signed -7×6 | 60 / -42 | PASS |
+
+**Register File (`regfile_tb.v`) — 5/5 PASS:**
+
+| Test | Beklenen | Sonuç |
+|---|---|:---:|
+| Yaz/oku reg[5] | 0xDEADBEEF | PASS |
+| `$zero` hardwired (reg[0]'a yazma) | 0x00000000 | PASS |
+| Çift okuma portu (dOut0/dOut1) | 0xDEADBEEF / 0xAAAA5555 | PASS |
+| `we=0` iken yazma yok | değişmez | PASS |
+
+> Not: `testbench/alu/` ve `testbench/regfile/` altında Verilator (C++) testbench'leri de mevcuttur; bunlar Linux içindir. Windows/ModelSim ortamı için yukarıdaki Verilog testbench'leri eklenmiştir.
+
+### 7.2 Komut Testleri (23 senaryo, hepsi PASS)
 
 | Kategori | Test | Beklenen | Sonuç |
 |---|---|---:|:---:|
@@ -404,7 +434,7 @@ python assembler.py prog.asm out.dat   # belirli çıktı yolu
 |                        | mem_boundary_test (mem[0x2000]) | 100 | PASS |
 |                        | branch_range_test (1+2+...+10 loop) | 55 | PASS |
 
-### 7.2 Regresyon
+### 7.3 Regresyon (Program Testi)
 
 CLAUDE.md'nin **golden testi** `nsum2` (1+2+...+15 = 120) tüm değişikliklerden sonra hâlâ **120** üretir. Mevcut testler:
 
@@ -424,7 +454,7 @@ lw_sw          v0=4096
 
 (`jal.dat` ve `add123.dat` v0'a yazmıyor — pre-existing test programı sorunu, donanım hatası değil.)
 
-### 7.3 FSM State Coverage
+### 7.4 FSM State Coverage
 
 `testbench/run_coverage.ps1` script'i tüm testleri koşturur ve her komutun hangi state'lere girdiğini birleşik bitmask olarak rapor eder.
 
@@ -437,7 +467,7 @@ Eksik state: WB_JAL (state 14)
 
 **Diğer 41 state**, eklenen 22 yeni state dahil, en az bir test tarafından ziyaret edildi.
 
-### 7.4 Sınır durumları analizi
+### 7.5 Sınır durumları analizi
 
 | Sınır | Test | Davranış |
 |---|---|---|
@@ -447,7 +477,7 @@ Eksik state: WB_JAL (state 14)
 | MUL sıfır operandı | mul_zero_test | 0 ✓ |
 | MUL signed | mul_neg_test ((-7)*6) | -42 ✓ |
 
-### 7.5 Simülasyon Dalga Formları (Waveform)
+### 7.6 Simülasyon Dalga Formları (Waveform)
 
 Aşağıdaki dalga formları, ModelSim simülasyonunun ürettiği `cpu.vcd` dosyasından **doğrudan** (gerçek simülasyon çıktısı) üretilmiştir. Her figürde üstten alta: `clk`, FSM `state` (sembolik isimlerle), `pc`, `ir`, geçici register'lar `A`/`B`/`ALUOut`, ALU `result` ve kontrol sinyalleri (`pcWe`, `irWe`, `regWe`, `memWe`, `aluResWe`) gösterilir.
 
@@ -607,6 +637,9 @@ multicycle-mips-master/
 ├── testbench/
 │   ├── cpu.t.v                 # Top testbench (instruction param — relative forward-slash path)
 │   ├── fsm_coverage.t.v        # FSM state coverage harnesi (aynı kural)
+│   ├── alu_tb.v                # ALU birim testi (ModelSim)
+│   ├── regfile_tb.v            # Register file birim testi (ModelSim)
+│   ├── run_unit_tests.ps1      # ALU + regfile birim test runner
 │   ├── show_wave.do            # ModelSim GUI + wave otomatik kurulum
 │   ├── run_regression.ps1      # 13 mevcut test batch runner
 │   ├── run_new_tests.ps1       # 23 yeni komut test batch runner (PASS/FAIL)
@@ -635,7 +668,7 @@ multicycle-mips-master/
 | Tasarımın doğruluğu | %30 | 23/23 fonksiyonel test PASS, nsum2 golden korundu |
 | Mimari ve tasarım kalitesi | %20 | Modüler, parametrik mux'lar, 4-way upgrade'ler temiz |
 | Yeni komutların entegrasyonu | %15 | 6 komutun tümü ekstra donanım + FSM ile başarıyla entegre |
-| Test kapsamı | %20 | 23 test + 3 sınır durumu + %97.6 state coverage |
+| Test kapsamı | %20 | Birim (ALU 14 + regfile 5) + 23 komut testi + 3 sınır durumu + %97.6 state coverage + waveform |
 | Dokümantasyon | %15 | Bu rapor + project-plan.md + CLAUDE.md + asm/dat eşli unit_tests |
 
 ### 10.2 Bilinen kısıtlamalar
