@@ -32,7 +32,7 @@ PDF'in zorunlu bileşenleri ve mevcut tasarım eşleşmesi:
 | ALU | 9 işlem (ADD/SUB/XOR/SLT/AND/NAND/NOR/OR/MUL) | `rtl/alu.v` |
 | A, B (geçici reg) | `a`, `b` register'ları, `aWe`/`bWe` ile yüklenir | `rtl/cpu.v:74` |
 | ALUOut | `ffResult` register, `aluResWe` ile yüklenir | `rtl/cpu.v:74` |
-| MDR (Memory Data Register) | `dOut` doğrudan kullanılır (combinational read) — açık MDR register'ı yok, fakat eşdeğer işlevsellik korunur | `rtl/memory.v` |
+| MDR (Memory Data Register) | Açık `mdr` register'ı; `mdrWe` ile MEM_LW/MEM_POP state'lerinde `dOut`'tan yüklenir, WB'de `regDInMux.in0` olarak okunur | `rtl/cpu.v:119` |
 
 **Multi-cycle aşamalar (PDF):** IF, ID, EX, MEM, WB — FSM'de fazla state'lere bölünmüş halde mevcut. Tipik komut 4-5 cycle'da tamamlanır; PUSH/POP 5 cycle, ADDI3 5 cycle.
 
@@ -195,8 +195,8 @@ ADDI3 (özel):
                                  │                    │
                   ┌──── eq, gt ◄─┘                    │
                                                       │
-              ┌──► regDIn Mux 4w ◄───────────────────┘ (dOut for MDR)
-              │   (MDR=dOut, ffR, B, A)
+              ┌──► regDIn Mux 4w ◄───────────────────┘ (dOut → MDR reg)
+              │   (MDR, ffR, B, A)
               └── selected by regIn[1:0]
 ```
 
@@ -234,7 +234,7 @@ Toplam **42 state**. Tüm state listesi:
 | 9 | EX_SLT | SLT |
 | 10 | EX_XORI | XOR (zxi) |
 | 11 | EX_LWSWADDI | ADD adres/imm hesabı |
-| 12 | MEM_LW | mem[ffResult] oku |
+| 12 | MEM_LW | mem[ffResult] → MDR (`mdrWe`) |
 | 13 | MEM_SW | mem[ffResult] ← b |
 | 14 | WB_JAL | (kullanılmıyor — pre-existing bug) |
 | 15 | WB_SUBADDSLT | reg[rd] ← ALU sonucu |
@@ -261,7 +261,7 @@ Toplam **42 state**. Tüm state listesi:
 | **36** | **EX_PUSH** | ffResult ← SP-4 |
 | **37** | **MEM_PUSH** | mem[ffResult] ← B |
 | **38** | **WB_PUSH_SP** | reg[$29] ← SP-4 |
-| **39** | **MEM_POP** | dOut ← mem[SP], ffResult ← SP+4 |
+| **39** | **MEM_POP** | MDR ← mem[SP] (`mdrWe`), ffResult ← SP+4 |
 | **40** | **WB_POP_RT** | reg[rt] ← MDR |
 | **41** | **WB_POP_SP** | reg[$29] ← SP+4 |
 
@@ -399,48 +399,113 @@ Eksik state: WB_JAL (state 14)
 
 ## 8. Çalıştırma Talimatları
 
-### 8.1 Hızlı koşum (ModelSim, headless)
+> **Ön koşul:** Tüm komutlar `testbench/` dizininden çalıştırılmalıdır.
+> ModelSim'in PATH'de olduğundan emin ol (`vsim`, `vlog` komutları çalışıyor olmalı).
 
-```tcl
-cd C:/intelFPGA/18.1/multicycle-mips-master/testbench
-vlib work
-vlog cpu.t.v
-vsim -c work.cputest -do "run -all; quit"
-```
+---
 
-Beklenen son satır: `Contents of v0: 120` (nsum2 default).
+### 8.1 Tek test — terminal (headless)
 
-### 8.2 Test programı değiştirme
-
-`testbench/cpu.t.v:10` satırındaki `.instruction("unit_tests/X.dat")` parametresini değiştir, `vlog cpu.t.v` ile yeniden derle.
-
-### 8.3 Toplu test koşumu
+**PowerShell terminali açıp çalıştır:**
 
 ```powershell
 cd C:\intelFPGA\18.1\multicycle-mips-master\testbench
-./run_new_tests.ps1     # 23 yeni komut testi, expected ile karşılaştırma
-./run_regression.ps1    # 13 mevcut test
-./run_coverage.ps1      # FSM state coverage raporu
+vlib work                                        # ilk seferinde
+vlog cpu.t.v                                     # derle
+vsim -c work.cputest -do "run -all; quit"        # çalıştır
 ```
 
-### 8.4 Assembler ile .dat üretme
+Beklenen son satır: `Contents of v0: 120`
+
+---
+
+### 8.2 Toplu test koşumu — terminal
+
+```powershell
+cd C:\intelFPGA\18.1\multicycle-mips-master\testbench
+
+.\run_regression.ps1
+# Çıktı: her test için "testAdı  v0=değer"
+# Örn:   nsum2          v0=120
+#        add            v0=1234
+
+.\run_new_tests.ps1
+# Çıktı: "testAdı  expected=X  got=X  PASS/FAIL"
+# Örn:   and_test       expected=8    got=8    PASS
+
+.\run_coverage.ps1
+# Çıktı: her test için ziyaret edilen FSM state'leri + özet
+# Örn:   and_test   [IF, ID_X, EX_LWSWADDI, EX_AND, WB_R_LOGIC, ...]
+#        ...
+#        State coverage: 41/42 (97.6%)
+#        Eksik state'ler: 14=WB_JAL
+```
+
+---
+
+### 8.3 Waveform görüntüleme — ModelSim GUI
+
+**PowerShell'den GUI'yi aç:**
+
+```powershell
+cd C:\intelFPGA\18.1\multicycle-mips-master\testbench
+Start-Process vsim -ArgumentList "-do show_wave.do"
+```
+
+**Veya zaten açık ModelSim transcript'ine yaz:**
+
+```tcl
+cd C:/intelFPGA/18.1/multicycle-mips-master/testbench
+do show_wave.do
+```
+
+**Farklı test görmek için** `show_wave.do` dosyasının 6. satırını değiştir:
+
+```tcl
+set TESTDAT "unit_tests/and_test.dat"   # istediğin test adı
+```
+
+Sonra tekrar `do show_wave.do`.
+
+Waveform'da gösterilen sinyal grupları:
+
+| Grup | Sinyaller | Ne gösterir |
+|---|---|---|
+| Clock | clk | Saat sinyali |
+| PC and IR | pc, ir | Program sayacı ve instruction register |
+| FSM | state, prevState | Hangi aşamada olunduğu (0=IF, 3=ID_X, vb.) |
+| ALU | result, zero, overflow, gt | Hesaplama sonucu ve durum bayrakları |
+| Registers | a, b, ffResult | Geçici kayıtlar ve ALU sonuç register'ı |
+| Memory | we, addr, dOut | Bellek yazma, adres ve çıkış |
+| Control | pcWe, irWe, regWe, memWe, aluResWe | Kontrol sinyalleri |
+
+---
+
+### 8.4 Test programı değiştirme (manuel)
+
+`testbench/cpu.t.v` dosyasının 10. satırını düzenle:
+
+```verilog
+cpu #(.instruction("unit_tests/TESTADI.dat")) dut(clk);
+```
+
+Sonra ModelSim transcript'inde:
+
+```tcl
+vlog cpu.t.v
+restart -f
+run -all
+```
+
+---
+
+### 8.5 Assembler ile yeni .dat üretme
 
 ```powershell
 cd C:\intelFPGA\18.1\multicycle-mips-master
-python assembler.py testbench\unit_tests\swap_test.asm
-# -> testbench\unit_tests\swap_test.dat üretir
+python assembler.py testbench\unit_tests\yeni_test.asm
+# -> testbench\unit_tests\yeni_test.dat üretir
 ```
-
-### 8.5 Waveform (GUI)
-
-```tcl
-cd testbench
-vsim work.cputest
-add wave -r /*
-run 4096 ns
-```
-
-Üretilen `cpu.vcd` (yaklaşık 1.2 MB) tüm sinyal değişikliklerini içerir; harici VCD görüntüleyiciler (GTKWave vb.) ile de açılabilir.
 
 ---
 
@@ -458,12 +523,13 @@ multicycle-mips-master/
 │   ├── mux.v                   # 2-way mux
 │   └── mux4way.v               # 4-way mux
 ├── testbench/
-│   ├── cpu.t.v                 # Top testbench (instruction param)
-│   ├── fsm_coverage.t.v        # State coverage harnesi
-│   ├── unit_tests/             # 23 yeni + 13 mevcut .dat/.asm
-│   ├── run_new_tests.ps1       # Yeni komut test runner
-│   ├── run_regression.ps1      # Mevcut test runner
-│   └── run_coverage.ps1        # State coverage runner
+│   ├── cpu.t.v                 # Top testbench (instruction param — relative forward-slash path)
+│   ├── fsm_coverage.t.v        # FSM state coverage harnesi (aynı kural)
+│   ├── show_wave.do            # ModelSim GUI + wave otomatik kurulum
+│   ├── run_regression.ps1      # 13 mevcut test batch runner
+│   ├── run_new_tests.ps1       # 23 yeni komut test batch runner (PASS/FAIL)
+│   ├── run_coverage.ps1        # FSM state coverage batch runner (per-test + özet)
+│   └── unit_tests/             # 36 test: .dat (hex) + .asm kaynak
 ├── assembler.py                # Python assembler (23 komut)
 ├── docs/
 │   ├── project-plan.md         # Tasarım planı
@@ -491,13 +557,11 @@ multicycle-mips-master/
 1. **MUL HI/LO ayrımı yok** — sadece düşük 32 bit `rd`'ye yazılır. Gerçek MIPS `mult` HI/LO çiftine yazar; bu basitleştirme PDF formatına ("rd, rs, rt") uymak için yapıldı.
 2. **WB_JAL pre-existing bug** — JAL komutu bu projede düzeltilmedi (scope dışı).
 3. **`loadi` ile 32-bit immediate yüklenemiyor** — 16-bit sign-ext sınırı. Büyük sabitler için workaround: `loadi` + `mul` / `add` zincirleme. SP init için `0x1000` gibi düşük bir adres seçildi.
-4. **MDR ayrı register değil** — Memory `dOut` doğrudan kullanılıyor. PDF "MDR" istiyor; rapor seviyesinde "implicit MDR via combinational read" diye not düşülebilir.
-5. **ALU `command` 3-bit → 4-bit'e çıkarıldı** — Sentez aracında biraz daha alan kullanır; FPGA timing'ini etkilemez.
+4. **ALU `command` 3-bit → 4-bit'e çıkarıldı** — Sentez aracında biraz daha alan kullanır; FPGA timing'ini etkilemez.
 
 ### 10.3 Olası geliştirmeler
 
 - **MUL'ü iteratif yap** (shift-and-add, 32-cycle) → "multi-cycle ALU extension" PDF amacına daha uygun.
-- **MDR register'ı eklemek** → PDF gereksinimi tam karşılansın.
 - **WB_JAL düzeltimi** → state coverage %100'e ulaşır.
 - **Overflow trap'i** → ADD/SUB/MUL'da overflow detect edip exception state'ine geç.
 
