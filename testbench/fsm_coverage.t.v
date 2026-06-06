@@ -4,7 +4,7 @@
 module cputest_cov();
    reg clk;
    initial clk = 0;
-   cpu #(.instruction("C:\\intelFPGA\\18.1\\multicycle-mips-master\\testbench\\unit_tests\\nsum2.dat")) dut(clk);
+   cpu #(.instruction("unit_tests/nsum2.dat")) dut(clk);
    always #1 clk = ~clk;
 
    reg [63:0] visited;  // 64-bit bitmask, state 0..63
@@ -25,6 +25,15 @@ module cputest_cov();
       $finish;
    end
 endmodule
+
+
+
+
+
+
+
+
+
 
 
 

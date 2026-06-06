@@ -7,7 +7,7 @@ module cputest();
       counter = 0;
    end
 
-   cpu #(.instruction("C:\\intelFPGA\\18.1\\multicycle-mips-master\\testbench\\unit_tests\\branch_range_test.dat")) dut(clk);
+   cpu #(.instruction("unit_tests/nsum2.dat")) dut(clk);
    always #1 clk = ~clk;
 
    always #2 begin
@@ -23,6 +23,11 @@ module cputest();
       $finish;
    end
 endmodule
+
+
+
+
+
 
 
 
