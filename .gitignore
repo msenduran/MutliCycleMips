@@ -10,6 +10,10 @@
 !*.dat
 !*.py
 
+# Test/wave automation scripts (referenced as deliverables in docs)
+!*.ps1
+!*.do
+
 # Root-level files we want
 !.gitignore
 !README.md
