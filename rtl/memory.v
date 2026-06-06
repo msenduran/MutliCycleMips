@@ -30,7 +30,13 @@ module memory
     input [width*wordSz-1:0]  dIn
     );
 
-   reg [width-1:0]            mem [depth-1:0];
+   // Reduce depth for Quartus RTL Viewer; simulation uses full 2^16
+   `ifdef SYNTHESIS
+   localparam rtlDepth = 2**10;
+   `else
+   localparam rtlDepth = depth;
+   `endif
+   reg [width-1:0]            mem [rtlDepth-1:0];
 
    `ifndef SYNTHESIS
    initial $readmemh(data, mem);
