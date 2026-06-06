@@ -152,6 +152,44 @@ python assembler.py testbench\unit_tests\mul_test.asm
 
 ---
 
+## Demo Waveform Komutları — 10 test (kopyala-yapıştır)
+
+Her satır ModelSim GUI'yi açıp ilgili testin dalga formunu (decimal register'larla) gösterir. Prompt'a `!` ile yapıştır:
+
+```powershell
+# 1) Genel akış — döngü + branch (1+...+15 = 120)
+Set-Location C:\intelFPGA\18.1\multicycle-mips-master\testbench; vsim -do "do show_wave.do nsum2"
+
+# 2) MUL — EX_MUL, v0=60
+Set-Location C:\intelFPGA\18.1\multicycle-mips-master\testbench; vsim -do "do show_wave.do mul_test"
+
+# 3) MUL signed — v0=-42 (decimal signed)
+Set-Location C:\intelFPGA\18.1\multicycle-mips-master\testbench; vsim -do "do show_wave.do mul_neg_test"
+
+# 4) ADDI3 — iki aşamalı ALU, v0=35
+Set-Location C:\intelFPGA\18.1\multicycle-mips-master\testbench; vsim -do "do show_wave.do addi3_test"
+
+# 5) SWAP — register takası, v0=200
+Set-Location C:\intelFPGA\18.1\multicycle-mips-master\testbench; vsim -do "do show_wave.do swap_test"
+
+# 6) PUSH/POP — LIFO yığın, sp düşer, v0=30
+Set-Location C:\intelFPGA\18.1\multicycle-mips-master\testbench; vsim -do "do show_wave.do pushpop_lifo_test"
+
+# 7) BGT — signed büyüktür dallanması, gt flag, v0=22
+Set-Location C:\intelFPGA\18.1\multicycle-mips-master\testbench; vsim -do "do show_wave.do bgt_taken_test"
+
+# 8) LOADI — immediate yükleme, v0=42
+Set-Location C:\intelFPGA\18.1\multicycle-mips-master\testbench; vsim -do "do show_wave.do loadi_test"
+
+# 9) LW/SW — bellek load/store, v0=4096
+Set-Location C:\intelFPGA\18.1\multicycle-mips-master\testbench; vsim -do "do show_wave.do lw_sw"
+
+# 10) BEQ — eşitlik dallanması, v0=2
+Set-Location C:\intelFPGA\18.1\multicycle-mips-master\testbench; vsim -do "do show_wave.do beq"
+```
+
+> Kısayolla aynısı: `testbench/` dizininde `.\wave.ps1 <test>` (ör. `.\wave.ps1 pushpop_lifo_test`).
+
 ## Hızlı Komut Kartı (tek bakışta)
 
 ```powershell
@@ -161,8 +199,8 @@ python assembler.py testbench\unit_tests\mul_test.asm
 .\run_regression.ps1        # nsum2=120 golden + 13 test
 .\run_coverage.ps1          # FSM 41/42 (%97.6)
 
-vsim -do "do show_wave.do mul_test"     # waveform (herhangi bir test adı)
-#   nsum2 | mul_test | addi3_test | pushpop_lifo_test | bgt_taken_test | swap_test ...
+.\wave.ps1 mul_test         # kisayol: GUI'de o testin waveform'unu acar
+vsim -do "do show_wave.do mul_test"     # ayni sey, acik komut
 
 # repo kökünden:
 python assembler.py testbench\unit_tests\mul_test.asm   # asm -> dat
