@@ -57,4 +57,6 @@ add wave                 sim:/cputest/dut/fsm0/memWe
 add wave                 sim:/cputest/dut/fsm0/aluResWe
 
 run 4096 ns
-wave zoom full
+# Tüm simülasyon yerine ilk ~6 komutu okunabilir göster (screenshot için).
+# Tüm akışı görmek istersen: wave zoom full
+wave zoom range 0 56
