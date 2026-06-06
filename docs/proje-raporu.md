@@ -2,8 +2,48 @@
 
 **Ders:** Bilgisayar Mimarisi  
 **Teslim Tarihi:** 8 Haziran 2026  
-**Grup Üyeleri:** _(grup üyelerinin adlarını ekleyin)_  
-**Proje Yöneticisi:** _(seçilen yönetici)_
+**Proje Yöneticisi:** Meriç Şenduran
+
+**Grup Üyeleri:**
+
+| Ad Soyad | Numara |
+|---|---|
+| Hakan Babur | 1306220056 |
+| Ömer Yasin Akis | 1306220025 |
+| Alperen Çiftcibaşı | 1306220045 |
+| Meriç Şenduran | 1306240103 |
+| Mehmet Kağan Kocadağ | 1306230083 |
+
+**Proje Video Linki:** _(eklenecek)_  
+**Drive (tüm çıktılar):** _(eklenecek)_
+
+---
+
+## 0. Proje Ekibi, Görev Dağılımı ve Zamanlama
+
+### 0.1 Görev Dağılımı
+
+Proje 5 kişilik grup halinde, PDF'teki takım rollerine göre koordine edildi. Proje Yöneticisi tüm süreci koordine etti.
+
+| Üye | Rol | Sorumluluk alanı |
+|---|---|---|
+| **Meriç Şenduran** *(Proje Yöneticisi)* | Datapath Tasarımcısı | ALU, register file, memory interface; yeni komutlar için datapath değişiklikleri |
+| Hakan Babur | Control Unit Tasarımcısı | FSM (Finite State Machine), kontrol sinyallerinin üretimi, multi-cycle kontrol akışı |
+| Ömer Yasin Akis | ISA & Assembler Geliştiricisi | Yeni komut seti tanımı, opcode/format belirleme, Python assembler |
+| Alperen Çiftcibaşı | Verification & Test Mühendisi | Testbench yazımı, komut/coverage testleri (tüm komut/durum/state kapsama analizi) |
+| Mehmet Kağan Kocadağ | Entegrasyon & Dokümantasyon | Modül birleştirme, raporlama, demo hazırlığı |
+
+### 0.2 Zamanlama (İcra Planı)
+
+| Hafta | Üye | Faaliyet |
+|---|---|---|
+| 1–2 | Meriç Şenduran | Datapath: ALU/regfile/memory arayüzü + yeni komut datapath değişiklikleri (mux genişletmeleri, MDR, sxi11) |
+| 2 | Hakan Babur | FSM 42 state, kontrol sinyalleri, multi-cycle akış |
+| 2 | Ömer Yasin Akis | Yeni komut opcode/format tanımları + Python assembler |
+| 3 | Alperen Çiftcibaşı | Testbench + 23 komut testi + FSM coverage + sınır durumları |
+| 3 | Mehmet Kağan Kocadağ | Modül entegrasyonu, rapor yazımı, demo videosu |
+
+> **Not:** Haftalık koordinasyon toplantıları ile her rol arasındaki bağımlılıklar (datapath → FSM → test) senkronize edildi.
 
 ---
 
@@ -394,6 +434,36 @@ Eksik state: WB_JAL (state 14)
 | Geri-yönlü branch (negatif offset) | branch_range_test (loop) | bne ile geriye 3 instruction atlama. Sign-extended branch offset doğru çalışıyor. |
 | MUL sıfır operandı | mul_zero_test | 0 ✓ |
 | MUL signed | mul_neg_test ((-7)*6) | -42 ✓ |
+
+### 7.5 Simülasyon Dalga Formları (Waveform)
+
+Aşağıdaki dalga formları, ModelSim simülasyonunun ürettiği `cpu.vcd` dosyasından **doğrudan** (gerçek simülasyon çıktısı) üretilmiştir. Her figürde üstten alta: `clk`, FSM `state` (sembolik isimlerle), `pc`, `ir`, geçici register'lar `A`/`B`/`ALUOut`, ALU `result` ve kontrol sinyalleri (`pcWe`, `irWe`, `regWe`, `memWe`, `aluResWe`) gösterilir.
+
+> Üretim: `testbench/gen_waveforms.ps1` → her test için `cpu.vcd` üretir, `testbench/vcd_to_wave.py` ile PNG'ye render eder. Yeniden üretmek için `testbench/` dizininde `.\gen_waveforms.ps1` çalıştırılması yeterlidir.
+
+#### (a) Genel multi-cycle akış — `nsum2`
+
+![nsum2 waveform](img/wave_nsum2.png)
+
+`pc` 0→4→8→C… ilerlerken her komut `IF → ID_X → EX_* → WB_*` aşamalarından geçer. `irWe`/`pcWe` IF aşamasında, `regWe` WB aşamasında darbelenir; `aluResWe` ALU sonucunu `ALUOut`'a (`ffResult`) kilitler.
+
+#### (b) MUL — tek ALU işlemiyle çarpma
+
+![MUL waveform](img/wave_mul.png)
+
+`mul $v0, $t0, $t1` komutu `IF → ID_X → EX_MUL → WB_SUBADDSLT` akışını izler. `A=0xC` (12), `B=0x5` (5), ve `EX_MUL` sonunda `ALUOut = 0x3C` (60) — doğru çarpım. Sonuç WB'de `$v0`'a yazılır.
+
+#### (c) ADDI3 — iki aşamalı ALU
+
+![ADDI3 waveform](img/wave_addi3.png)
+
+`addi3 $v0, $t0, $t1, 5` için ALU iki cycle kullanır: `EX_ADDI3_1`'de `ALUOut = 0x1E` (rs+rt = 10+20 = 30), `EX_ADDI3_2`'de `ALUOut = 0x23` (30+imm11 = 35). `WB_ADDI3` sonucu `rd`'ye yazar.
+
+#### (d) PUSH/POP — LIFO yığın
+
+![PUSH/POP waveform](img/wave_pushpop.png)
+
+Üç ardışık `push` (`IF → ID_X → EX_PUSH → MEM_PUSH → WB_PUSH_SP`): `A`'da görünen `$sp` her PUSH'ta 4 azalır (`0x1000 → 0xFFC → 0xFF8 → 0xFF4`), `B`'deki itilen değerler (`0xA`, `0x14`, `0x1E`) `memWe` darbesiyle belleğe yazılır. Sonraki `pop` (`MEM_POP → WB_POP_RT → WB_POP_SP`) en son itilen değeri (`0x1E` = 30) geri okur — LIFO doğrulandı.
 
 ---
 
