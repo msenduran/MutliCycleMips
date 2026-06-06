@@ -183,7 +183,13 @@ ADDI3 (özel):
 
 ## 4. Datapath
 
-### 4.1 Üst seviye blok diyagramı (text)
+### 4.1 Üst seviye blok diyagramı
+
+![Datapath blok diyagramı](img/datapath_diagram.png)
+
+Soldan sağa ana veri akışı: `PC → memAddrMux → Memory → IR/MDR → Decode → Register File → A/B → aluA/aluB Mux → ALU → ALUOut (ffResult)`. Kırmızı oklar geri besleme yollarını gösterir: `pcMux` (PC+4 / dallanma hedefi / atlama / JR), `ffResult`'ın bellek adresine ve `regDInMux`'a dönüşü, ve `MDR → regDInMux → Register File` yazma yolu. `immMux` (sxi/zxi/sxi11/0) `aluBMux`'a immediate kaynağını sağlar.
+
+> Diyagram `testbench/gen_diagrams.py` ile üretilir (matplotlib). Aşağıdaki metin gösterim aynı yapının ASCII karşılığıdır.
 
 ```
                    ┌──────┐
@@ -258,7 +264,13 @@ ADDI3 (özel):
 
 ## 5. Kontrol Birimi (FSM)
 
-Toplam **42 state**. Tüm state listesi:
+Kontrol birimi, multi-cycle akışı yöneten **42 state'li Moore FSM**'dir. Aşağıdaki diyagram tüm state'leri pipeline aşamalarına (IF/ID/EX/MEM/WB) göre sütunlara dizilmiş halde ve aralarındaki geçişlerle gösterir. Gri kesikli oklar, komut tamamlandıktan sonra `IF`'e dönüşü temsil eder. `WB_JAL` tasarlanmış ancak hiçbir geçişle ulaşılmayan (pre-existing) state'tir.
+
+![FSM durum geçiş diyagramı](img/fsm_diagram.png)
+
+> Diyagram `testbench/gen_diagrams.py` ile üretilir.
+
+Tüm state listesi:
 
 | # | State | Açıklama |
 |---|---|---|
@@ -599,11 +611,15 @@ multicycle-mips-master/
 │   ├── run_regression.ps1      # 13 mevcut test batch runner
 │   ├── run_new_tests.ps1       # 23 yeni komut test batch runner (PASS/FAIL)
 │   ├── run_coverage.ps1        # FSM state coverage batch runner (per-test + özet)
+│   ├── vcd_to_wave.py          # VCD → waveform PNG render (headless)
+│   ├── gen_waveforms.ps1       # Rapor waveform figürlerini üretir
+│   ├── gen_diagrams.py         # Datapath + FSM diyagramlarını üretir
 │   └── unit_tests/             # 36 test: .dat (hex) + .asm kaynak
 ├── assembler.py                # Python assembler (23 komut)
 ├── docs/
 │   ├── project-plan.md         # Tasarım planı
-│   └── proje-raporu.md         # Bu rapor
+│   ├── proje-raporu.md         # Bu rapor
+│   └── img/                    # Figürler: waveform + datapath/FSM diyagramları
 ├── MultiCycleV1.mpf            # ModelSim proje dosyası
 └── CLAUDE.md                   # Geliştirme notları
 ```
