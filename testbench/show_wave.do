@@ -44,15 +44,23 @@ add wave -radix unsigned sim:/cputest/dut/fsm0/state
 add wave -radix unsigned sim:/cputest/dut/fsm0/prevState
 
 add wave -divider {ALU}
-add wave -radix hex      sim:/cputest/dut/result
+add wave -radix decimal  sim:/cputest/dut/result
 add wave                 sim:/cputest/dut/zero
 add wave                 sim:/cputest/dut/overflow
 add wave                 sim:/cputest/dut/gt
 
-add wave -divider {Registers}
-add wave -radix hex      sim:/cputest/dut/a
-add wave -radix hex      sim:/cputest/dut/b
-add wave -radix hex      sim:/cputest/dut/ffResult
+add wave -divider {Registers (decimal)}
+add wave -radix decimal  sim:/cputest/dut/a
+add wave -radix decimal  sim:/cputest/dut/b
+add wave -radix decimal  sim:/cputest/dut/ffResult
+
+# Gercek register dosyasi (programin sonuclari) - decimal
+add wave -divider {Register File (decimal)}
+add wave -radix decimal -label {v0 (r2)}  {sim:/cputest/dut/regfile0/registers[2]}
+add wave -radix decimal -label {t0 (r8)}  {sim:/cputest/dut/regfile0/registers[8]}
+add wave -radix decimal -label {t1 (r9)}  {sim:/cputest/dut/regfile0/registers[9]}
+add wave -radix decimal -label {t2 (r10)} {sim:/cputest/dut/regfile0/registers[10]}
+add wave -radix decimal -label {sp (r29)} {sim:/cputest/dut/regfile0/registers[29]}
 
 add wave -divider {Memory}
 add wave                 sim:/cputest/dut/mem0/we

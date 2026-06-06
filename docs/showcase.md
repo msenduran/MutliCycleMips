@@ -85,6 +85,8 @@ tree /F ..\rtl
 >
 > **State sayı→isim eşlemesi** rapor §5'te. Hızlı referans:
 > `0=IF, 3=ID_X, 8=EX_ADD, 11=EX_LWSWADDI, 35=EX_MUL, 30/31=EX_ADDI3_1/2, 28=EX_BGT, 36=EX_PUSH, 37=MEM_PUSH, 39=MEM_POP, 15=WB_SUBADDSLT, 16=WB_ADDIXORI`
+>
+> **Decimal görünüm:** `show_wave.do` artık `a/b/ALUOut/result`'ı ve **Register File** grubunu (`v0/t0/t1/t2/sp`) **decimal** gösterir — sonucun register'a düştüğünü doğrudan okuyabilirsin (ör. mul_test'te `t0=12, t1=5, v0=60`). Anlık değiştirmek için Wave'de sinyale sağ tık → **Radix ▸ Decimal/Unsigned**.
 
 **GUI'yi aç (terminalden):**
 ```powershell
