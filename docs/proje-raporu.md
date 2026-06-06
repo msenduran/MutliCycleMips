@@ -260,6 +260,16 @@ Soldan sağa ana veri akışı: `PC → memAddrMux → Memory → IR/MDR → Dec
   - `writeAddrMux`: 4-way (rd/rt/rs/$29)
   - `regDInMux`: 4-way (dOut/ffR/B/A)
 
+### 4.3 Quartus RTL Viewer Şeması (sentezlenmiş)
+
+Tasarım, **Quartus Prime Lite 18.1** ile Cyclone IV E (EP4CE115F29C7) hedefine **0 hata** ile elaborate edildi (`quartus/MultiCycleMips.qpf`, `--analysis_and_elaboration`). Bu, RTL'in yalnızca simüle edilebilir değil, aynı zamanda **sentezlenebilir** olduğunu doğrular. `SYNTHESIS` makrosu simülasyona özgü yapıları (`$readmemh`, hiyerarşik bellek ön-yükleme) devre dışı bırakır.
+
+Aşağıdaki şema, Quartus'un RTL Viewer'ından dışa aktarılan **gerçek elaborate edilmiş netlist**'tir (üst seviye: `cpu` → `decode/fsm`, `alu`, `regfile`, `memory`, mux'lar).
+
+![Quartus RTL Viewer şeması](img/rtl_schematic.png)
+
+> Üretim: `quartus/` dizininde `quartus_map MultiCycleMips --analysis_and_elaboration`, ardından GUI'de **Tools ▸ Netlist Viewers ▸ RTL Viewer** açılır ve **File ▸ Export…** ile `docs/img/rtl_schematic.png` olarak kaydedilir.
+
 ---
 
 ## 5. Kontrol Birimi (FSM)
