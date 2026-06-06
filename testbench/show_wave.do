@@ -2,8 +2,18 @@
 # Kullanim: vsim -do show_wave.do
 # Veya ModelSim transcript'ten: do show_wave.do
 #
-# Hangi testi gormek istiyorsan asagidaki satiri degistir:
-set TESTDAT "unit_tests/nsum2.dat"
+# Test secimi (argumanla veya varsayilan):
+#   do show_wave.do              -> nsum2 (varsayilan)
+#   do show_wave.do mul_test     -> unit_tests/mul_test.dat
+#   do show_wave.do push_test    -> unit_tests/push_test.dat
+# Komut satirindan acmak icin:  vsim -do "do show_wave.do mul_test"
+if {$argc > 0} {
+   set TESTNAME $1
+} else {
+   set TESTNAME "nsum2"
+}
+set TESTDAT "unit_tests/$TESTNAME.dat"
+echo "Waveform testi: $TESTDAT"
 
 if {[file exists work/_lib.qdb] == 0} { vlib work }
 
