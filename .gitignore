@@ -21,5 +21,8 @@
 # Documentation is Markdown — allow only under docs/
 !docs/**/*.md
 
+# Report figures (waveforms, diagrams) under docs/
+!docs/**/*.png
+
 # Never track these even if they would otherwise match
 CLAUDE.md
